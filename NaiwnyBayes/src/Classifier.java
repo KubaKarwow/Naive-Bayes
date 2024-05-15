@@ -1,33 +1,77 @@
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Classifier {
     private List<FlowerCategoricalRecord> training;
     private Set<String> possibleAnswers;
-
+    private List<ErrorMatrixRow> errorMatrix;
 
     public Classifier(List<FlowerCategoricalRecord> training) {
         this.training = training;
         possibleAnswers=getAllPossibleAnswers();
+        errorMatrix = new ArrayList<>();
     }
 
     private Set<String> getAllPossibleAnswers() {
         return training.stream().map(FlowerCategoricalRecord::getFlowerKind).collect(Collectors.toSet());
     }
-
+    private Map<String,Integer> initializeErrorMatrixRow(){
+        HashMap<String, Integer> result = new HashMap<>();
+        for (String possibleAnswer : possibleAnswers) {
+            result.put(possibleAnswer,0);
+        }
+        return result;
+    }
+    private void putInTheRightPlaceInErrorMatrix(String programAnswer,String properAnswer){
+        for (ErrorMatrixRow matrixRow : errorMatrix) {
+            if(matrixRow.getKey().equals(properAnswer)){
+                matrixRow.getOccurrences().put(programAnswer,matrixRow.getOccurrences().get(programAnswer)+1);
+            }
+        }
+    }
     public void processTestData(List<FlowerCategoricalRecord> test) {
+        for (String possibleAnswer : possibleAnswers) {
+            Map<String, Integer> classesAndClasifications = initializeErrorMatrixRow();
+            errorMatrix.add(new ErrorMatrixRow(possibleAnswer,classesAndClasifications));
+        }
         int classifiedCorrectlyCount=0;
         for (FlowerCategoricalRecord record : test) {
             String programResult = classifyRecord(record);
+            putInTheRightPlaceInErrorMatrix(programResult,record.getFlowerKind());
             if(programResult.equals(record.getFlowerKind())){
                 classifiedCorrectlyCount++;
             }
         }
+        showErrorMatrix();
         System.out.println( (classifiedCorrectlyCount*1.0)/test.size() *100.0+"%");
     }
+    private void showErrorMatrix() {
+        // Wyznacz długość maksymalną dla nazw klas, aby uzyskać równy odstęp
+        int maxClassNameLength = 0;
+        for (ErrorMatrixRow matrixRow : errorMatrix) {
+            int length = matrixRow.getKey().length();
+            if (length > maxClassNameLength) {
+                maxClassNameLength = length;
+            }
+        }
+
+        // Wyświetl nagłówek macierzy
+        System.out.printf("%-" + (maxClassNameLength + 15) + "s", "classified as ->");
+        for (ErrorMatrixRow matrixRow : errorMatrix) {
+            System.out.printf("%-" + (maxClassNameLength + 3) + "s", matrixRow.getKey());
+        }
+        System.out.println();
+
+        // Wyświetl zawartość macierzy
+        for (ErrorMatrixRow matrixRow : errorMatrix) {
+            System.out.printf("%-" + (maxClassNameLength + 15) + "s", matrixRow.getKey());
+            for (String keyEntry : matrixRow.getOccurrences().keySet()) {
+                System.out.printf("%-" + (maxClassNameLength + 3) + "d", matrixRow.getOccurrences().get(keyEntry));
+            }
+            System.out.println();
+        }
+    }
+
     private double getProbability(List<FlowerCategoricalRecord> recordsWithSuchResult,FlowerCategoricalRecord record) {
         double probability = 1.0;
         for (int i = 0; i < record.getCategoricalAttributes().length; i++) {
