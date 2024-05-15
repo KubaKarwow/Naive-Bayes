@@ -42,8 +42,49 @@ public class Classifier {
                 classifiedCorrectlyCount++;
             }
         }
+        for (String possibleAnswer : possibleAnswers) {
+            double precision = getPrecision(possibleAnswer);
+            double fullfillment = getFullfillment(possibleAnswer);
+            System.out.println("Precision for:"+possibleAnswer + " " + precision);
+            System.out.println("Fullfillment for:" + possibleAnswer +" " + fullfillment);
+            System.out.println("F-measure for:" + possibleAnswer + " " + 2*precision*fullfillment/(precision+fullfillment));
+        }
+        System.out.println("Error Matrix");
         showErrorMatrix();
-        System.out.println( (classifiedCorrectlyCount*1.0)/test.size() *100.0+"%");
+
+        System.out.println( "Accurancy:"+(classifiedCorrectlyCount*1.0)/test.size() *100.0+"%");
+    }
+    private double getFullfillment(String keyName){
+        int classifiedCorrectly=0;
+        int actualyClassCount=0;
+        for (ErrorMatrixRow matrixRow : errorMatrix) {
+            if(matrixRow.getKey().equals(keyName)){
+                classifiedCorrectly = matrixRow.getOccurrences().get(keyName);
+                break;
+            }
+        }
+        for (ErrorMatrixRow matrixRow : errorMatrix) {
+            if(matrixRow.getKey().equals(keyName)){
+                for (String keyEntry : matrixRow.getOccurrences().keySet()) {
+                    actualyClassCount += matrixRow.getOccurrences().get(keyEntry);
+                }
+            }
+        }
+        return (classifiedCorrectly*1.0)/actualyClassCount;
+    }
+    private double getPrecision(String keyName){
+        int classifiedCorrectly=0;
+        int classifiedAs=0;
+        for (ErrorMatrixRow matrixRow : errorMatrix) {
+            if(matrixRow.getKey().equals(keyName)){
+                 classifiedCorrectly = matrixRow.getOccurrences().get(keyName);
+                break;
+            }
+        }
+        for (ErrorMatrixRow matrixRow : errorMatrix) {
+            classifiedAs+=matrixRow.getOccurrences().get(keyName);
+        }
+        return (classifiedCorrectly*1.0)/classifiedAs;
     }
     private void showErrorMatrix() {
         // Wyznacz długość maksymalną dla nazw klas, aby uzyskać równy odstęp
@@ -73,21 +114,38 @@ public class Classifier {
     }
 
     private double getProbability(List<FlowerCategoricalRecord> recordsWithSuchResult,FlowerCategoricalRecord record) {
-        double probability = 1.0;
+        List<Probability> probabilities = new ArrayList<>();
         for (int i = 0; i < record.getCategoricalAttributes().length; i++) {
             int finalI = i;
             int count = (int) recordsWithSuchResult.
                     stream().
                     filter(r -> r.getCategoricalAttributes()[finalI] == record.getCategoricalAttributes()[finalI])
                     .count();
-            double probabilityOfAttribute = (count * 1.0) / recordsWithSuchResult.size();
-            if (probabilityOfAttribute == 0) {
-                // toDo tu chyba idzie print jak wygladzamy not sure
-                probabilityOfAttribute = smoothingIfZero(count, recordsWithSuchResult.size(), possibleAnswers.size());
-            }
-            probability *= probabilityOfAttribute;
+            probabilities.add(new Probability(count,recordsWithSuchResult.size()));
         }
-        probability*=(recordsWithSuchResult.size()*1.0)/training.size();
+      //  probability*=(recordsWithSuchResult.size()*1.0)/training.size();
+
+
+        for (Probability probabilityEntry : probabilities) {
+            if(probabilityEntry.getDivided()==0){
+                System.out.println("Before smoothing");
+                for (Probability probability1 : probabilities) {
+                    System.out.print(probability1+" ");
+                }
+                System.out.println();
+                System.out.println("After smoothing");
+                smoothingIfZero(probabilities);
+                for (Probability probability1 : probabilities) {
+                    System.out.print(probability1+"  ");
+                }
+                System.out.println();
+            }
+        }
+        probabilities.add(new Probability(recordsWithSuchResult.size(),training.size()));
+        double probability = 1.0;
+        for (Probability probability1 : probabilities) {
+            probability*=(probability1.getDivided()*1.0)/probability1.getDivider();
+        }
         return probability;
     }
     public String classifyRecord(FlowerCategoricalRecord record) {
@@ -113,8 +171,11 @@ public class Classifier {
         }
         return result;
     }
-    private double smoothingIfZero(int attributeCount, int decisiveAttributeCount, int amountOfPossibleAnswers){
-        return 1.0/(decisiveAttributeCount+amountOfPossibleAnswers);
+    private void smoothingIfZero(List<Probability> probabilities){
+        for (Probability probability : probabilities) {
+            probability.setDivided(probability.getDivided()+1);
+            probability.setDivider(probability.getDivider()+DataTransformer.AMOUNT_OF_CLASSES);
+        }
     }
 
     private Map<String, Double> initializeMap(Set<String> possibleAnswers) {

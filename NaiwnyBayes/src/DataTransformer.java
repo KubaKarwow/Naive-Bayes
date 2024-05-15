@@ -3,7 +3,7 @@ import java.util.List;
 
 public class DataTransformer {
     private static List<FlowerNominalRecord> nominalRecords;
-    private static final int AMOUNT_OF_CLASSES=4;
+    public static final int AMOUNT_OF_CLASSES=4;
 
     public static List<FlowerCategoricalRecord> transform(List<FlowerNominalRecord> nominalRecords){
         List<FlowerCategoricalRecord> result = createResultList( nominalRecords);
