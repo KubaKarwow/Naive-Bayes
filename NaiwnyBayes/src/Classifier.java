@@ -52,7 +52,7 @@ public class Classifier {
         System.out.println("Error Matrix");
         showErrorMatrix();
 
-        System.out.println( "Accurancy:"+(classifiedCorrectlyCount*1.0)/test.size() *100.0+"%");
+        System.out.println( "Accuracy:"+(classifiedCorrectlyCount*1.0)/test.size() *100.0+"%");
     }
     private double getFullfillment(String keyName){
         int classifiedCorrectly=0;
@@ -173,8 +173,10 @@ public class Classifier {
     }
     private void smoothingIfZero(List<Probability> probabilities){
         for (Probability probability : probabilities) {
-            probability.setDivided(probability.getDivided()+1);
-            probability.setDivider(probability.getDivider()+DataTransformer.AMOUNT_OF_CLASSES);
+            if(probability.getDivided()==0){
+                probability.setDivided(probability.getDivided()+1);
+                probability.setDivider(probability.getDivider()+DataTransformer.AMOUNT_OF_CLASSES);
+            }
         }
     }
 

@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Scanner;
 import java.util.stream.Collectors;
 
 public class Main {
@@ -13,6 +14,28 @@ public class Main {
      //   transformedTraining.forEach(System.out::println);
         Classifier classifier = new Classifier(transformedTraining);
         classifier.processTestData(transformedTest);
+        while(true){
+            System.out.println("Do you want to, classify your own vector? type 'Yes' or 'No'");
+            Scanner scanner = new Scanner(System.in);
+            String userIN = scanner.next();
+            if(userIN.equals("Yes")){
+                int amountOfAtrributes = transformedTraining.get(0).getCategoricalAttributes().length;
+                double[] ownAttributes= new double[amountOfAtrributes];
+                for (int i = 0; i < amountOfAtrributes; i++) {
+                    System.out.print("insert next attribute: ");
+                    ownAttributes[i]=scanner.nextDouble();
+                }
+                FlowerNominalRecord flowerNominalRecord = new FlowerNominalRecord(ownAttributes, "");
+                FlowerCategoricalRecord flowerCategoricalRecord = DataTransformer.transformSingleRecord(flowerNominalRecord,training);
+                String result = classifier.classifyRecord(flowerCategoricalRecord);
+                System.out.println("This flower is classified to: " + result);
+
+            } else if (userIN.equals("No")){
+                break;
+            } else{
+                System.out.println("wrong input");
+            }
+        }
     }
     public static List<FlowerNominalRecord> getDataFromFile(String fileName) throws IOException {
         List<String> lines = Files.readAllLines(Path.of(fileName));

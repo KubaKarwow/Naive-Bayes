@@ -3,7 +3,7 @@ import java.util.List;
 
 public class DataTransformer {
     private static List<FlowerNominalRecord> nominalRecords;
-    public static final int AMOUNT_OF_CLASSES=4;
+    public static final int AMOUNT_OF_CLASSES=3;
 
     public static List<FlowerCategoricalRecord> transform(List<FlowerNominalRecord> nominalRecords){
         List<FlowerCategoricalRecord> result = createResultList( nominalRecords);
@@ -17,6 +17,19 @@ public class DataTransformer {
                 int categoricalValue = classifyValue(minFromColumn, differenceBetweenClasses, nominalRecords.get(j).getNumericAttributes()[i]);
                 result.get(j).getCategoricalAttributes()[i]=categoricalValue;
             }
+
+        }
+        return result;
+    }
+    public static FlowerCategoricalRecord transformSingleRecord(FlowerNominalRecord nominalRecord,List<FlowerNominalRecord> training){
+        int length = nominalRecord.getNumericAttributes().length;
+        FlowerCategoricalRecord result = new FlowerCategoricalRecord(length,"");
+        for (int i = 0; i < length; i++) {
+            double minFromColumn = getMinFromColumn(i,training);
+            double maxFromColumn = getMaxFromColumn(i,training);
+            double differenceBetweenClasses=(maxFromColumn-minFromColumn)/AMOUNT_OF_CLASSES;
+            int categoricalValue = classifyValue(minFromColumn, differenceBetweenClasses, nominalRecord.getNumericAttributes()[i]);
+            result.getCategoricalAttributes()[i]=categoricalValue;
 
         }
         return result;
@@ -36,7 +49,11 @@ public class DataTransformer {
             min+=differenceBetweenClasses;
         }
         // lines 26 should always return the value, -1 here is just for possible debug purposes
-        return -1;
+        if(value<min){
+            return 0;
+        } else{
+            return AMOUNT_OF_CLASSES;
+        }
     }
     private static double getMinFromColumn(int columnNumber, List<FlowerNominalRecord> nominalRecords){
         return nominalRecords.stream().min((r1, r2) ->
